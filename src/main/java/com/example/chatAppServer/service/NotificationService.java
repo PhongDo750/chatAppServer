@@ -33,7 +33,6 @@ public class NotificationService {
     private final NotificationMapper notificationMapper;
     private final EventNotificationRepository eventNotificationRepository;
     private final PostRepository postRepository;
-    private final PostService postService;
     private final PostMapper postMapper;
     private final LikeMapRepository likeMapRepository;
 
@@ -68,7 +67,6 @@ public class NotificationService {
         return notificationOutputs;
     }
 
-    // thread != method thread
     @Transactional
     public Page<NotificationOutput> getNotifies(String accessToken, Pageable pageable) {
         Long userId = TokenHelper.getUserIdFromToken(accessToken);
@@ -138,8 +136,13 @@ public class NotificationService {
                 userId,
                 postOutputs.stream().map(PostOutput::getId).collect(Collectors.toList())
         );
+        List<PostOutput> postOutputPage = null;
         if (Objects.isNull(likeMapEntities) || likeMapEntities.isEmpty()){
-            return postOutputs;
+            for (PostOutput postOutput : postOutputs){
+                postOutput.setHasLike(Boolean.FALSE);
+            }
+            postOutputPage = postOutputs;
+            return postOutputPage;
         }
         Map<Long, Long> likeMapsMap = likeMapEntities.stream()
                 .collect(Collectors.toMap(LikeMapEntity::getPostId, LikeMapEntity::getId));

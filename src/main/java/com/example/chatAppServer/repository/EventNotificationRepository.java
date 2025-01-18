@@ -11,4 +11,8 @@ public interface EventNotificationRepository extends JpaRepository<EventNotifica
     void deleteAllByUserIdAndEventType(Long userId, String eventType);
 
     List<EventNotificationEntity> findAllByUserIdAndState(Long userId, String state);
+
+    void deleteAllByChatIdAndUserId(Long chatId, Long userId);
+
+    List<EventNotificationEntity> findAllByUserIdAndEventType(Long userId, String eventType);
 }

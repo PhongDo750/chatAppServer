@@ -2,6 +2,7 @@ package com.example.chatAppServer.service;
 
 import com.example.chatAppServer.common.Common;
 import com.example.chatAppServer.dto.post.CommentOutput;
+import com.example.chatAppServer.dto.post.PostInput;
 import com.example.chatAppServer.dto.post.PostOutput;
 import com.example.chatAppServer.dto.user.UserOutput;
 import com.example.chatAppServer.entity.*;
@@ -37,10 +38,12 @@ public class UserInteractService {
     private final PostRepository postRepository;
     private final NotificationRepository notificationRepository;
     private final EventNotificationRepository eventNotificationRepository;
+    private final PushNotificationService pushNotificationService;
 
     @Transactional
     public void likePost(Long postId, String accessToken) {
         Long userId = TokenHelper.getUserIdFromToken(accessToken);
+        UserEntity userEntity = customRepository.getUserBy(userId);
         if (Boolean.TRUE.equals(likeMapRepository.existsByUserIdAndPostId(postId, userId))) {
             throw new RuntimeException(Common.ACTION_FAIL);
         }
@@ -65,13 +68,14 @@ public class UserInteractService {
             );
             eventNotificationRepository.save(
                     EventNotificationEntity.builder()
-                            .eventType(Common.LIKE)
+                            .eventType(Common.NOTIFICATION)
                             .userId(postEntity.getUserId())
                             .state(Common.NEW_EVENT)
                             .build()
             );
 
             //push notification
+            pushNotificationService.sendNotification(postEntity.getUserId(), Common.LIKE);
         });
     }
 
@@ -84,6 +88,7 @@ public class UserInteractService {
     @Transactional
     public void commentPost(Long postId, String accessToken, String comment, List<MultipartFile> imageUrls) {
         Long userId = TokenHelper.getUserIdFromToken(accessToken);
+        UserEntity userEntity = customRepository.getUserBy(userId);
         PostEntity postEntity = customRepository.getPostBy(postId);
         CommentEntity commentEntity = CommentEntity.builder()
                 .userId(userId)
@@ -111,13 +116,14 @@ public class UserInteractService {
 
             eventNotificationRepository.save(
                     EventNotificationEntity.builder()
-                            .eventType(Common.COMMENT)
+                            .eventType(Common.NOTIFICATION)
                             .userId(postEntity.getUserId())
                             .state(Common.NEW_EVENT)
                             .build()
             );
 
             //push notification
+            pushNotificationService.sendNotification(postEntity.getUserId(), Common.COMMENT);
         });
     }
 
@@ -221,5 +227,48 @@ public class UserInteractService {
         }
         postOutput.setComments(commentOutputs);
         return postOutput;
+    }
+
+    @Transactional
+    public void sharePost(String accessToken, Long shareId, PostInput sharePostInput) {
+        Long userId = TokenHelper.getUserIdFromToken(accessToken);
+        PostEntity postEntity = customRepository.getPostBy(shareId);
+
+        if (userId.equals(postEntity.getUserId())) {
+            throw new RuntimeException(Common.ACTION_FAIL);
+        }
+
+        PostEntity sharePostEntity = PostEntity.builder()
+                .userId(userId)
+                .content(sharePostInput.getContent())
+                .state(sharePostInput.getState())
+                .type(sharePostInput.getType())
+                .createdAt(LocalDateTime.now())
+                .shareId(shareId)
+                .groupId(
+                        Objects.isNull(sharePostInput.getGroupId()) ? null : sharePostInput.getGroupId()
+                )
+                .build();
+        postRepository.save(sharePostEntity);
+
+        CompletableFuture.runAsync(() -> {
+            notificationRepository.save(
+                    NotificationEntity.builder()
+                            .type(sharePostInput.getType())
+                            .userId(postEntity.getUserId())
+                            .interactId(userId)
+                            .interactType(Common.SHARE)
+                            .postId(shareId)
+                            .hasSeen(false)
+                            .createdAt(LocalDateTime.now())
+                            .groupId(
+                                    Objects.isNull(sharePostInput.getGroupId()) ? null : sharePostInput.getGroupId()
+                            )
+                            .build()
+            );
+
+            //push notification
+            pushNotificationService.sendNotification(postEntity.getUserId(), "Thông báo");
+        });
     }
 }

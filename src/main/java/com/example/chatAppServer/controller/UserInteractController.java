@@ -1,5 +1,6 @@
 package com.example.chatAppServer.controller;
 
+import com.example.chatAppServer.dto.post.PostInput;
 import com.example.chatAppServer.dto.post.PostOutput;
 import com.example.chatAppServer.dto.user.UserOutput;
 import com.example.chatAppServer.service.UserInteractService;
@@ -70,5 +71,13 @@ public class UserInteractController {
     public PostOutput getPostAndComment(@RequestParam Long postId,
                                         @RequestHeader("Authorization") String accessToken){
         return userInteractService.getPostAndComment(postId, accessToken);
+    }
+
+    @Operation(summary = "Chia sẻ bài viết")
+    @PostMapping("/share")
+    public void sharePost(@RequestHeader("Authorization") String accessToken,
+                          @RequestParam Long shareId,
+                          @RequestBody @Valid PostInput sharePostInput){
+        userInteractService.sharePost(accessToken, shareId, sharePostInput);
     }
 }

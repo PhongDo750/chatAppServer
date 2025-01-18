@@ -4,7 +4,6 @@ import com.example.chatAppServer.common.Common;
 import com.example.chatAppServer.dto.post.PostInput;
 import com.example.chatAppServer.dto.post.PostOutput;
 import com.example.chatAppServer.entity.LikeMapEntity;
-import com.example.chatAppServer.entity.NotificationEntity;
 import com.example.chatAppServer.entity.PostEntity;
 import com.example.chatAppServer.entity.UserEntity;
 import com.example.chatAppServer.entity.friend.FriendMapEntity;
@@ -21,7 +20,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -35,6 +33,7 @@ public class PostService {
     private final LikeMapRepository likeMapRepository;
     private final FriendMapRepository friendMapRepository;
     private final NotificationRepository notificationRepository;
+    private final PushNotificationService pushNotificationService;
 
     @Transactional
     public void createPost(String accessToken, PostInput postInput, List<MultipartFile> imageUrls) {
@@ -71,43 +70,6 @@ public class PostService {
     public void deletePost(String accessToken, Long postId) {
         Long userId = TokenHelper.getUserIdFromToken(accessToken);
         postRepository.deleteByUserIdAndId(userId, postId);
-    }
-
-    @Transactional
-    public void sharePost(String accessToken, Long shareId, PostInput sharePostInput) {
-        Long userId = TokenHelper.getUserIdFromToken(accessToken);
-        PostEntity postEntity = customRepository.getPostBy(shareId);
-
-        if (userId.equals(postEntity.getUserId())) {
-            throw new RuntimeException(Common.ACTION_FAIL);
-        }
-
-        CompletableFuture.runAsync(() -> {
-            notificationRepository.save(
-                    NotificationEntity.builder()
-                            .type(Common.USER)
-                            .userId(postEntity.getUserId())
-                            .interactId(userId)
-                            .interactType(Common.SHARE)
-                            .postId(shareId)
-                            .hasSeen(false)
-                            .createdAt(LocalDateTime.now())
-                            .build()
-            );
-
-
-            //push notification
-        });
-
-        PostEntity sharePostEntity = PostEntity.builder()
-                .userId(userId)
-                .content(sharePostInput.getContent())
-                .state(sharePostInput.getState())
-                .type(sharePostInput.getType())
-                .createdAt(LocalDateTime.now())
-                .shareId(shareId)
-                .build();
-        postRepository.save(sharePostEntity);
     }
 
     @Transactional(readOnly = true)
@@ -163,9 +125,9 @@ public class PostService {
     @Transactional(readOnly = true)
     public Page<PostOutput> getPostOfListFriend(String accessToken, Long friendId, Pageable pageable){
         Long userId = TokenHelper.getUserIdFromToken(accessToken);
-        FriendMapEntity friendMapEntity = friendMapRepository.findByUserId1AndUserId2(userId,friendId);
+        FriendMapEntity friendMapEntity = friendMapRepository.findByUserId1AndUserId2(friendId,userId);
         if (Objects.isNull(friendMapEntity)) {
-            throw  new RuntimeException(Common.ACTION_FAIL);
+            throw new RuntimeException(Common.ACTION_FAIL);
         }
         Page<PostEntity> PostsOfFriendProfile = postRepository.findAllByUserIdAndState(friendId,Common.PUBLIC,pageable);
         Map<Long, UserEntity> friendMap = new HashMap<>();
@@ -232,8 +194,13 @@ public class PostService {
                 userId,
                 postOutputs.map(PostOutput::getId).toList()
         );
+        Page<PostOutput> postOutputPage = null;
         if (Objects.isNull(likeMapEntities) || likeMapEntities.isEmpty()){
-            return postOutputs;
+            for (PostOutput postOutput : postOutputs) {
+                postOutput.setHasLike(Boolean.FALSE);
+            }
+            postOutputPage = postOutputs;
+            return postOutputPage;
         }
         Map<Long, Long> likeMapsMap = likeMapEntities.stream()
                 .collect(Collectors.toMap(LikeMapEntity::getPostId, LikeMapEntity::getId));

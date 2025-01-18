@@ -3,13 +3,13 @@ package com.example.chatAppServer.service;
 import com.example.chatAppServer.common.Common;
 import com.example.chatAppServer.dto.user.FriendSearchingOutput;
 import com.example.chatAppServer.dto.user.UserOutput;
+import com.example.chatAppServer.entity.ChatEntity;
+import com.example.chatAppServer.entity.UserChatMapEntity;
 import com.example.chatAppServer.entity.UserEntity;
 import com.example.chatAppServer.entity.friend.FriendMapEntity;
 import com.example.chatAppServer.entity.friend.FriendRequestEntity;
 import com.example.chatAppServer.mapper.UserMapper;
-import com.example.chatAppServer.repository.FriendMapRepository;
-import com.example.chatAppServer.repository.FriendRequestRepository;
-import com.example.chatAppServer.repository.UserRepository;
+import com.example.chatAppServer.repository.*;
 import com.example.chatAppServer.token.TokenHelper;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -29,6 +30,8 @@ public class FriendService {
     private final UserRepository userRepository;
     private final FriendRequestRepository friendRequestRepository;
     private final UserMapper userMapper;
+    private final ChatRepository chatRepository;
+    private final UserChatRepository userChatRepository;
 
     @Transactional
     public void sendRequestAddFriend(String accessToken, Long receiverId) {
@@ -84,6 +87,46 @@ public class FriendService {
         );
 
         friendRequestRepository.deleteByReceiverIdAndSenderId(receiverId, senderId);
+
+        CompletableFuture.runAsync(() -> {
+            Map<Long, UserEntity> userEntityMap = userRepository.findAllByIdIn(
+                    Arrays.asList(senderId, receiverId)
+            ).stream().collect(Collectors.toMap(UserEntity::getId, Function.identity()));
+
+            ChatEntity chatEntity1 = ChatEntity.builder()
+                    .userId1(senderId)
+                    .userId2(receiverId)
+                    .chatType(Common.USER)
+                    .name(userEntityMap.get(senderId).getFullName())
+                    .imageUrl(userEntityMap.get(senderId).getImageUrl())
+                    .build();
+
+            chatRepository.save(chatEntity1);
+
+            userChatRepository.save(
+                    UserChatMapEntity.builder()
+                            .userId(senderId)
+                            .chatId(chatEntity1.getId())
+                            .build()
+            );
+
+            ChatEntity chatEntity2 = ChatEntity.builder()
+                    .userId1(receiverId)
+                    .userId2(senderId)
+                    .chatType(Common.USER)
+                    .name(userEntityMap.get(receiverId).getFullName())
+                    .imageUrl(userEntityMap.get(receiverId).getImageUrl())
+                    .build();
+
+            chatRepository.save(chatEntity2);
+
+            userChatRepository.save(
+                    UserChatMapEntity.builder()
+                            .userId(receiverId)
+                            .chatId(chatEntity2.getId())
+                            .build()
+            );
+        });
     }
 
     @Transactional

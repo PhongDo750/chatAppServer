@@ -53,14 +53,6 @@ public class PostController {
         postService.deletePost(accessToken, postId);
     }
 
-    @Operation(summary = "Chia sẻ bài viết")
-    @PostMapping("/share")
-    public void sharePost(@RequestHeader("Authorization") String accessToken,
-                          @RequestParam Long shareId,
-                          @RequestBody @Valid PostInput sharePostInput){
-        postService.sharePost(accessToken, shareId, sharePostInput);
-    }
-
     @Operation(summary = "Danh sách bài viết (của mình)")
     @GetMapping("/list/me")
     public Page<PostOutput> getMyPost(@RequestHeader("Authorization") String accessToken,

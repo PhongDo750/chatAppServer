@@ -19,7 +19,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -32,7 +31,6 @@ public class PostGroupService {
     private final UserRepository userRepository;
     private final PostMapper postMapper;
     private final LikeMapRepository likeMapRepository;
-    private final NotificationRepository notificationRepository;
 
     @Transactional
     public void createPost(String accessToken, PostGroupInput postGroupInput, List<MultipartFile> imageUrls) {
@@ -74,43 +72,6 @@ public class PostGroupService {
             throw new RuntimeException(Common.ACTION_FAIL);
         }
         postRepository.delete(postEntity);
-    }
-
-    @Transactional
-    public void sharePost(String accessToken, Long shareId, PostInput sharePostInput) {
-        Long userId = TokenHelper.getUserIdFromToken(accessToken);
-        PostEntity postEntity = customRepository.getPostBy(shareId);
-
-        if (userId.equals(postEntity.getUserId())) {
-            throw new RuntimeException(Common.ACTION_FAIL);
-        }
-
-        CompletableFuture.runAsync(() -> {
-            notificationRepository.save(
-                    NotificationEntity.builder()
-                            .type(sharePostInput.getType())
-                            .userId(postEntity.getUserId())
-                            .interactId(userId)
-                            .interactType(Common.SHARE)
-                            .postId(shareId)
-                            .hasSeen(false)
-                            .createdAt(LocalDateTime.now())
-                            .build()
-            );
-
-
-            //push notification
-        });
-
-        PostEntity sharePostEntity = PostEntity.builder()
-                .userId(userId)
-                .content(sharePostInput.getContent())
-                .state(sharePostInput.getState())
-                .type(sharePostInput.getType())
-                .createdAt(LocalDateTime.now())
-                .shareId(shareId)
-                .build();
-        postRepository.save(sharePostEntity);
     }
 
     @Transactional(readOnly = true)
@@ -192,8 +153,13 @@ public class PostGroupService {
                 userId,
                 postOutputs.map(PostOutput::getId).toList()
         );
-        if (Objects.isNull(likeMapEntities) || likeMapEntities.isEmpty()) {
-            return postOutputs;
+        Page<PostOutput> postOutputPage = null;
+        if (Objects.isNull(likeMapEntities) || likeMapEntities.isEmpty()){
+            for (PostOutput postOutput : postOutputs) {
+                postOutput.setHasLike(Boolean.FALSE);
+            }
+            postOutputPage = postOutputs;
+            return postOutputPage;
         }
         Map<Long, Long> likeMapsMap = likeMapEntities.stream()
                 .collect(Collectors.toMap(LikeMapEntity::getPostId, LikeMapEntity::getId));

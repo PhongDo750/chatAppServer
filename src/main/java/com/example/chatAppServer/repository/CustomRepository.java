@@ -1,10 +1,7 @@
 package com.example.chatAppServer.repository;
 
 import com.example.chatAppServer.common.Common;
-import com.example.chatAppServer.entity.CommentEntity;
-import com.example.chatAppServer.entity.GroupEntity;
-import com.example.chatAppServer.entity.PostEntity;
-import com.example.chatAppServer.entity.UserEntity;
+import com.example.chatAppServer.entity.*;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -15,6 +12,7 @@ public class CustomRepository {
     private final GroupRepository groupRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
+    private final ChatRepository chatRepository;
 
     public UserEntity getUserBy(Long userId){
         return userRepository.findById(userId).orElseThrow(
@@ -36,6 +34,12 @@ public class CustomRepository {
 
     public CommentEntity getCommentBy(Long commentId){
         return commentRepository.findById(commentId).orElseThrow(
+                () -> new RuntimeException(Common.RECORD_NOT_FOUND)
+        );
+    }
+
+    public ChatEntity getChatBy(Long chatId){
+        return chatRepository.findById(chatId).orElseThrow(
                 () -> new RuntimeException(Common.RECORD_NOT_FOUND)
         );
     }

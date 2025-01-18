@@ -1,23 +1,19 @@
-package com.example.chatAppServer.entity.message;
+package com.example.chatAppServer.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
-
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Setter
-@Getter
 @Entity
-@Table(name = "tbl_event_notification")
 @Builder
-public class EventNotificationEntity {
+@Table(name = "tbl_user_chat_map")
+public class UserChatMapEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Long userId;
-    private String eventType;
-    private String state;
     private Long chatId;
 }
