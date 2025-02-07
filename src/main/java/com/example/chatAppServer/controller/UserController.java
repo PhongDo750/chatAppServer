@@ -66,4 +66,18 @@ public class UserController {
                                                  @ParameterObject Pageable pageable){
         return friendService.findUsers(search, accessToken, pageable);
     }
+
+    @Operation(summary = "Lấy code để reset password")
+    @PostMapping("/send-code-email")
+    public void sendCodeToEmail(@RequestHeader(value = Common.AUTHORIZATION) String accessToken) {
+        userService.sendCodeToEmail(accessToken);
+    }
+
+    @Operation(summary = "Thay đổi mật khẩu")
+    @PostMapping("/reset-password")
+    public void resetPassword(@RequestHeader(value = Common.AUTHORIZATION) String accessToken,
+                              @RequestBody ResetPassword resetPassword,
+                              @RequestParam String code) {
+        userService.resetPassword(accessToken, resetPassword, code);
+    }
 }
