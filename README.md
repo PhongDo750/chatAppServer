@@ -39,20 +39,20 @@ ChatServer is a full-featured real-time messaging backend built with **Spring Bo
 ## 📁 Project Structure
 ```text
 com.example.chatAppServer/
-├── cloudinary/          # Tích hợp upload ảnh lên Cloudinary
-├── common/              # Các class dùng chung (enum, constant, response,...)
+├── cloudinary/          # Cloudinary upload & image services
+├── common/              # Common constants
 ├── controller/          # REST API controllers
 ├── dto/                 # Data Transfer Objects
-├── entity/              # JPA entities ánh xạ CSDL
+├── entity/              # JPA entities
 ├── exceptionhandler/    # Xử lý ngoại lệ toàn cục (GlobalExceptionHandler)
-├── helper/              # Các hàm hỗ trợ / tiện ích
-├── mapper/              # Mapping giữa entity và DTO (MapStruct hoặc thủ công)
-├── redis/               # Cấu hình Redis
-├── repository/          # Giao tiếp với database (Spring Data JPA)
-├── security/            # Cấu hình bảo mật, JWT filter, OAuth2, ...
-├── service/             # Business logic (xử lý chính)
-├── token/               # Quản lý JWT token, tạo và xác thực
-└── websocket/           # WebSocket config, handler, session manager
+├── helper/              # Utility/helper methods
+├── mapper/              # Entity <-> DTO mapping
+├── redis/               # Redis presence config
+├── repository/          # Spring Data JPA Repositories
+├── security/            # Basic security + CORS config 
+├── service/             # Business logic
+├── token/               # JWT provider, token store
+└── websocket/           # WebSocket configuration & handlers
 ```
 ## 👤 Author
 
