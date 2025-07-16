@@ -44,7 +44,7 @@ com.example.chatAppServer/
 ├── controller/          # REST API controllers
 ├── dto/                 # Data Transfer Objects
 ├── entity/              # JPA entities
-├── exceptionhandler/    # Xử lý ngoại lệ toàn cục (GlobalExceptionHandler)
+├── exceptionhandler/    # Global exception handling
 ├── helper/              # Utility/helper methods
 ├── mapper/              # Entity <-> DTO mapping
 ├── redis/               # Redis presence config
